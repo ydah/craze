@@ -97,6 +97,66 @@ class HelpersTest < Minitest::Test
       vite_manifest: manifest
     )
 
-    assert_includes context.vite_js_tag('src/main.ts'), '/assets/assets/main-abc123.js'
+    assert_includes context.vite_js_tag('src/main.ts'), '/assets/main-abc123.js'
+    refute_includes context.vite_js_tag('src/main.ts'), '/assets/assets/'
+  end
+
+  def test_vite_css_tag_in_development
+    context = Craze::Template::Context.new(
+      site: {
+        'frontend' => {
+          'mode' => 'vite',
+          'dev_server' => { 'url' => 'http://localhost:5173' }
+        }
+      },
+      page: {},
+      environment: 'development'
+    )
+
+    assert_empty context.vite_css_tag('src/main.ts')
+  end
+
+  def test_vite_css_tag_in_production_with_manifest
+    manifest = {
+      'src/main.ts' => {
+        'file' => 'assets/main-abc123.js',
+        'css' => ['assets/main-abc123.css', 'assets/vendor-def456.css']
+      }
+    }
+    context = Craze::Template::Context.new(
+      site: { 'frontend' => { 'mode' => 'vite' } },
+      page: {},
+      environment: 'production',
+      vite_manifest: manifest
+    )
+
+    result = context.vite_css_tag('src/main.ts')
+    assert_includes result, '/assets/main-abc123.css'
+    assert_includes result, '/assets/vendor-def456.css'
+    refute_includes result, '/assets/assets/'
+  end
+
+  def test_vite_css_tag_in_production_without_css
+    manifest = { 'src/main.ts' => { 'file' => 'assets/main-abc123.js' } }
+    context = Craze::Template::Context.new(
+      site: { 'frontend' => { 'mode' => 'vite' } },
+      page: {},
+      environment: 'production',
+      vite_manifest: manifest
+    )
+
+    assert_empty context.vite_css_tag('src/main.ts')
+  end
+
+  def test_vite_js_tag_raises_when_entry_not_in_manifest
+    manifest = {}
+    context = Craze::Template::Context.new(
+      site: { 'frontend' => { 'mode' => 'vite' } },
+      page: {},
+      environment: 'production',
+      vite_manifest: manifest
+    )
+
+    assert_raises(RuntimeError) { context.vite_js_tag('src/missing.ts') }
   end
 end

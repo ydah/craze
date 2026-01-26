@@ -39,18 +39,22 @@ module Craze
           dev_url = @site&.dig('frontend', 'dev_server', 'url') || 'http://localhost:5173'
           %(<script type="module" src="#{dev_url}/#{entry}"></script>)
         else
-          asset_file = vite_manifest_entry(entry)
-          %(<script type="module" src="#{url_for("/assets/#{asset_file}")}"></script>)
+          manifest_entry = vite_manifest_entry(entry)
+          raise "Entry #{entry.inspect} not found in Vite manifest" unless manifest_entry
+
+          %(<script type="module" src="#{vite_output_url(manifest_entry['file'])}"></script>)
         end
       end
 
       def vite_css_tag(entry)
         if vite_dev_mode?
-          dev_url = @site&.dig('frontend', 'dev_server', 'url') || 'http://localhost:5173'
-          %(<link rel="stylesheet" href="#{dev_url}/#{entry}">)
+          ''
         else
-          asset_file = vite_manifest_entry(entry)
-          %(<link rel="stylesheet" href="#{url_for("/assets/#{asset_file}")}">)
+          manifest_entry = vite_manifest_entry(entry)
+          raise "Entry #{entry.inspect} not found in Vite manifest" unless manifest_entry
+
+          css_files = manifest_entry['css'] || []
+          css_files.map { |css| %(<link rel="stylesheet" href="#{vite_output_url(css)}">) }.join("\n")
         end
       end
 
@@ -59,8 +63,10 @@ module Craze
           dev_url = @site&.dig('frontend', 'dev_server', 'url') || 'http://localhost:5173'
           "#{dev_url}/#{entry}"
         else
-          asset_file = vite_manifest_entry(entry)
-          url_for("/assets/#{asset_file}")
+          manifest_entry = vite_manifest_entry(entry)
+          raise "Entry #{entry.inspect} not found in Vite manifest" unless manifest_entry
+
+          vite_output_url(manifest_entry['file'])
         end
       end
 
@@ -71,12 +77,13 @@ module Craze
       end
 
       def vite_manifest_entry(entry)
-        return entry unless @vite_manifest
+        return nil unless @vite_manifest
 
-        manifest_entry = @vite_manifest[entry]
-        return entry unless manifest_entry
+        @vite_manifest[entry]
+      end
 
-        manifest_entry['file'] || entry
+      def vite_output_url(manifest_path)
+        url_for("/#{manifest_path.sub(%r{^/}, '')}")
       end
     end
   end

@@ -136,9 +136,14 @@ module Craze
 
     def load_vite_manifest
       return nil unless @environment == 'production'
+      return nil unless @config.dig('frontend', 'mode') == 'vite'
 
       manifest_path = @config.dig('frontend', 'manifest', 'path')
-      return nil unless manifest_path && File.exist?(manifest_path)
+      raise 'frontend.manifest.path is not set for Vite production build' unless manifest_path
+
+      unless File.exist?(manifest_path)
+        raise "Vite manifest not found at #{manifest_path.inspect}. Run the Vite build before building the site."
+      end
 
       JSON.parse(File.read(manifest_path))
     end
