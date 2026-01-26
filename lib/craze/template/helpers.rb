@@ -83,7 +83,10 @@ module Craze
       end
 
       def vite_output_url(manifest_path)
-        url_for("/#{manifest_path.sub(%r{^/}, '')}")
+        public_base = @site&.dig('frontend', 'build', 'public_base') || ''
+        base = public_base.chomp('/')
+        path = manifest_path.sub(%r{^/}, '')
+        url_for("#{base}/#{path}")
       end
     end
   end

@@ -159,4 +159,43 @@ class HelpersTest < Minitest::Test
 
     assert_raises(RuntimeError) { context.vite_js_tag('src/missing.ts') }
   end
+
+  def test_vite_js_tag_with_public_base
+    manifest = { 'src/main.ts' => { 'file' => 'assets/main-abc123.js' } }
+    context = Craze::Template::Context.new(
+      site: {
+        'frontend' => {
+          'mode' => 'vite',
+          'build' => { 'public_base' => '/myapp/' }
+        }
+      },
+      page: {},
+      environment: 'production',
+      vite_manifest: manifest
+    )
+
+    assert_includes context.vite_js_tag('src/main.ts'), '/myapp/assets/main-abc123.js'
+  end
+
+  def test_vite_css_tag_with_public_base
+    manifest = {
+      'src/main.ts' => {
+        'file' => 'assets/main-abc123.js',
+        'css' => ['assets/main-abc123.css']
+      }
+    }
+    context = Craze::Template::Context.new(
+      site: {
+        'frontend' => {
+          'mode' => 'vite',
+          'build' => { 'public_base' => '/myapp' }
+        }
+      },
+      page: {},
+      environment: 'production',
+      vite_manifest: manifest
+    )
+
+    assert_includes context.vite_css_tag('src/main.ts'), '/myapp/assets/main-abc123.css'
+  end
 end
