@@ -42,7 +42,8 @@ module Craze
           collections: collections,
           data: data,
           environment: @environment,
-          vite_manifest: @vite_manifest
+          vite_manifest: @vite_manifest,
+          templates_dir: @templates_dir
         )
       end
 

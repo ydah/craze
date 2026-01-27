@@ -3,6 +3,8 @@
 require 'test_helper'
 
 class HelpersTest < Minitest::Test
+  include TestHelpers
+
   def setup
     @context = Craze::Template::Context.new(
       site: { 'base_path' => '/', 'title' => 'Test Site' },
@@ -197,5 +199,45 @@ class HelpersTest < Minitest::Test
     )
 
     assert_includes context.vite_css_tag('src/main.ts'), '/myapp/assets/main-abc123.css'
+  end
+
+  def test_render_partial_includes_trailing_content_and_vite_css
+    with_temp_dir do |dir|
+      templates_dir = File.join(dir, 'templates')
+      partials_dir = File.join(templates_dir, 'partials')
+      FileUtils.mkdir_p(partials_dir)
+
+      File.write(File.join(partials_dir, '_head.html.erb'), <<~ERB)
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
+        <!-- TEST COMMENT -->
+        <%= vite_css_tag 'src/main.js' %>
+      ERB
+
+      manifest = {
+        'src/main.js' => {
+          'file' => 'main-123.js',
+          'css' => ['main-456.css']
+        }
+      }
+
+      context = Craze::Template::Context.new(
+        site: {
+          'frontend' => {
+            'mode' => 'vite',
+            'build' => { 'public_base' => '/assets' }
+          }
+        },
+        page: {},
+        environment: 'production',
+        vite_manifest: manifest,
+        templates_dir: templates_dir
+      )
+
+      result = context.render(partial: 'head')
+
+      assert_includes result, 'materialdesignicons.min.css'
+      assert_includes result, '<!-- TEST COMMENT -->'
+      assert_includes result, '/assets/main-456.css'
+    end
   end
 end

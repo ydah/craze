@@ -1,10 +1,20 @@
 # frozen_string_literal: true
 
 require 'cgi/escape'
+require 'erb'
 
 module Craze
   module Template
     module Helpers
+      def render(partial:)
+        partial_name = partial.to_s
+        partial_path = find_partial_path(partial_name)
+        raise "Partial #{partial_name.inspect} not found" unless partial_path
+
+        template = File.read(partial_path)
+        ERB.new(template).result(render_binding)
+      end
+
       def url_for(path)
         base_path = @site&.dig('base_path') || '/'
         path = "/#{path}" unless path.start_with?('/')
@@ -87,6 +97,24 @@ module Craze
         base = public_base.chomp('/')
         path = manifest_path.sub(%r{^/}, '')
         url_for("#{base}/#{path}")
+      end
+
+      def find_partial_path(partial_name)
+        templates_dir = @templates_dir || 'templates'
+        extensions = %w[.html.erb .erb]
+        candidates = [
+          File.join(templates_dir, 'partials', "_#{partial_name}"),
+          File.join(templates_dir, "_#{partial_name}")
+        ]
+
+        candidates.each do |base_path|
+          extensions.each do |ext|
+            full_path = "#{base_path}#{ext}"
+            return full_path if File.exist?(full_path)
+          end
+        end
+
+        nil
       end
     end
   end
